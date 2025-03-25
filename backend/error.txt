@@ -1,0 +1,151 @@
+
+        // First Error
+
+d memory limit of 33554432 bytes, but did not opt in to external sorting.
+    at Connection.sendCommand (C:\codeclause_intern\mail_application\backend\node_modules\mongodb\lib\cmap\connection.js:299:27)        
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Connection.command (C:\codeclause_intern\mail_application\backend\node_modules\mongodb\lib\cmap\connection.js:327:26)      
+    at async Server.command (C:\codeclause_intern\mail_application\backend\node_modules\mongodb\lib\sdam\server.js:168:29)
+    at async FindOperation.execute (C:\codeclause_intern\mail_application\backend\node_modules\mongodb\lib\operations\find.js:36:16)    
+    at async tryOperation (C:\codeclause_intern\mail_application\backend\node_modules\mongodb\lib\operations\execute_operation.js:207:20)
+    at async executeOperation (C:\codeclause_intern\mail_application\backend\node_modules\mongodb\lib\operations\execute_operation.js:75:16)
+    at async FindCursor._initialize (C:\codeclause_intern\mail_application\backend\node_modules\mongodb\lib\cursor\find_cursor.js:61:26)    at async FindCursor.cursorInit (C:\codeclause_intern\mail_application\backend\node_modules\mongodb\lib\cursor\abstract_cursor.js:633:27)
+    at async FindCursor.fetchBatch (C:\codeclause_intern\mail_application\backend\node_modules\mongodb\lib\cursor\abstract_cursor.js:667:13) {
+  errorLabelSet: Set(0) {},
+  errorResponse: {
+    ok: 0,
+    errmsg: 'Executor error during find command: Mail_Application.incomingemails :: caused by :: Sort exceeded memory limit of 33554432 
+bytes, but did not opt in to external sorting.',
+    code: 292,
+    codeName: 'QueryExceededMemoryLimitNoDiskUseAllowed',
+    '$clusterTime': {
+      clusterTime: new Timestamp({ t: 1742049749, i: 31 }),
+      signature: [Object]
+    },
+    operationTime: new Timestamp({ t: 1742049749, i: 31 })
+  },
+  ok: 0,
+  code: 292,
+  codeName: 'QueryExceededMemoryLimitNoDiskUseAllowed',
+  '$clusterTime': {
+    clusterTime: new Timestamp({ t: 1742049749, i: 31 }),
+    signature: {
+      hash: Binary.createFromBase64('qWaLmHQliyD31+omrBTOH2sWoE0=', 0),
+      keyId: new Long('7436389251983343626')
+    }
+  },
+  operationTime: new Timestamp({ t: 1742049749, i: 31 })
+
+
+  // First Error solution :-
+
+  const getInbox = async (req, res) => {
+    try {
+      const user = await User.findById(req.userId);
+      if (!user || !user.imapConfig) {
+        return res.status(400).json({ message: 'IMAP Configuration not found' });
+      }
+      await fetchAndSaveEmails(user); // Fetch emails
+  
+      const page = parseInt(req.query.page) || 1; // Default to page 1
+      const limit = parseInt(req.query.limit) || 10; // Default to 10 emails per page
+      const skip = (page - 1) * limit;
+  
+      const incomingEmails = await IncomingEmail.find({ userId: user._id })
+        .sort({ date: -1 })
+        .skip(skip)
+        .limit(limit);
+  
+      const totalEmails = await IncomingEmail.countDocuments({ userId: user._id });
+      const totalPages = Math.ceil(totalEmails / limit);
+  
+      res.json({
+        data: incomingEmails,
+        pagination: {
+          currentPage: page,
+          totalPages: totalPages,
+          totalEmails: totalEmails,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching inbox:', error);
+      res.status(500).json({ message: 'Failed to fetch inbox' });
+    }
+  };
+
+  // Solution Explanation
+
+  Explanation of Pagination:
+
+page and limit: We get the desired page number and the number of emails per page from the request's query parameters. If not provided, we default to page 1 and a limit of 10.
+skip: We calculate how many emails to skip based on the page number and the limit.
+skip() and limit(): We use these Mongoose methods to fetch only the emails for the current page.
+countDocuments(): We count the total number of emails for the user to calculate the total number of pages.
+totalPages: We calculate the total number of pages.
+Response: We send back the paginated data and a pagination object containing information about the current page, total pages, and total number of emails.
+3. Indexing
+
+Make sure you have an index on the date field in your IncomingEmail model. This will significantly speed up the sorting operation.
+
+JavaScript
+
+// In your IncomingEmail model definition:
+const incomingEmailSchema = new mongoose.Schema({
+  // ... other fields
+  date: { type: Date, index: true }, // Add index: true
+  // ...
+});
+Revised Code with Solutions
+
+Here's the complete revised getInbox function incorporating both allowDiskUse and pagination (pagination is highly recommended):
+
+JavaScript
+
+const getInbox = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user || !user.imapConfig) {
+      return res.status(400).json({ message: 'IMAP Configuration not found' });
+    }
+    await fetchAndSaveEmails(user); // Fetch emails
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const incomingEmails = await IncomingEmail.find({ userId: user._id })
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit)
+      .allowDiskUse(true); // Added allowDiskUse for extra safety
+
+    const totalEmails = await IncomingEmail.countDocuments({ userId: user._id });
+    const totalPages = Math.ceil(totalEmails / limit);
+
+    res.json({
+      data: incomingEmails,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalEmails: totalEmails,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching inbox:', error);
+    res.status(500).json({ message: 'Failed to fetch inbox' });
+  }
+};
+How to Use Pagination
+
+To use pagination, you'll need to send page and limit query parameters with your request. For example:
+
+GET /inbox?page=1&limit=10 (Fetch the first 10 emails)
+GET /inbox?page=2&limit=10 (Fetch the next 10 emails)
+GET /inbox?page=3&limit=20 (Fetch 20 emails from page 3)
+Why Pagination is Important
+
+Improved Performance: Pagination dramatically reduces the amount of data that needs to be processed and sorted at once, preventing memory issues and improving response times.
+Better User Experience: It allows users to browse emails in manageable chunks, making it easier to navigate a large number of messages.
+Scalability: Pagination is essential for building scalable applications that can handle large datasets without performance degradation.
+By implementing pagination and adding the index, you'll address the memory limit issue and significantly improve the efficiency of your email retrieval process.
+
