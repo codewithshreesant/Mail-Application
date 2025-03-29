@@ -171,10 +171,9 @@ const updateSmtpConfiguration = asyncHandler(
 
 const updateUserImapConfig = async (req, res) => {
   try {
-    const userId = req.userId; // Assuming you have middleware to extract userId
+    const userId = req.userId; 
     const { host, port, username, password, secure, tls } = req.body;
 
-    // Validate the incoming data (add more validation as needed)
     if (!host || !port || !username || !password || secure === undefined || tls === undefined) {
       return res.status(400).json({ message: 'Missing IMAP configuration fields' });
     }
@@ -185,12 +184,11 @@ const updateUserImapConfig = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Update the imapConfig
     user.imapConfig = {
       host,
-      port: parseInt(port), // Ensure port is a number
+      port: parseInt(port), 
       username,
-      password, // Consider encrypting this password before saving!
+      password, 
       secure: secure === 'true' || secure === true,
       tls: Boolean(tls)
     };
@@ -206,14 +204,14 @@ const updateUserImapConfig = async (req, res) => {
 
 export const logout = (req, res) => {
     try {
-        // Clear the cookie that stores the JWT token
-        res.clearCookie('token'); // 'token' is the cookie name
+        res.clearCookie('token'); 
         return res.status(200).json({ message: 'Successfully logged out!' });
     } catch (error) {
         console.error('Logout error:', error);
         return res.status(500).json({ message: 'Something went wrong during logout.' });
     }
 }
+
 
 export {
     registerUser,

@@ -66,8 +66,6 @@ const sendEmail = asyncHandler(
         }
 
         await transporter.sendMail(mailOptions);
-        
-        // Save send Email to database 
         const sentEmail = new SentEmail({
             sender:req.userId,
             receipent,

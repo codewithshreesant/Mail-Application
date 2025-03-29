@@ -12,7 +12,7 @@ const incomingEmailSchema = new mongoose.Schema({
   subject: {
     type: String,
   },
-  body: { // or html, depending on how you parse the email
+  body: { 
     type: String,
   },
   date: {
@@ -23,22 +23,22 @@ const incomingEmailSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  attachments: [{ // Array for handling attachments
+  attachments: [{ 
     filename: String,
     contentType: String,
-    data: Buffer, // Store attachment data as buffer
+    data: Buffer, 
   }],
   messageId: {
-    type: String, // Store the message ID from the email server
-    unique: true, // Optional: ensure uniqueness
+    type: String,
+    unique: true, 
   },
-  userId: { // Store the user ID associated with the email
+  userId: { 
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // Reference to the User model
+    ref: 'User', 
     required: true,
   },
 }, {
-  timestamps: true, // Adds createdAt and updatedAt fields
+  timestamps: true,
 });
 
 const IncomingEmail = mongoose.model('IncomingEmail', incomingEmailSchema);

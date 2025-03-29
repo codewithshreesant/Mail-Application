@@ -7,6 +7,6 @@ const router = Router();
 
 router.route('/send').post(verifyToken, sendEmail);
 router.route('/sents').get(verifyToken,getSentEmails);
-// router.route()
+
 
 export default router;    

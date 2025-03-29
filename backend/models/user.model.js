@@ -26,7 +26,7 @@ const userSchema = new Schema(
       port: { type: Number },
       password: { type: String },
       secure: { type: Boolean },
-      tls: { type: Boolean }, // Add TLS field
+      tls: { type: Boolean }, 
     },
     isAdmin : {
       type:Boolean,
